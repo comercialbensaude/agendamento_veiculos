@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Agendamento e Gestão de Veículos Corporativos - v4</title>
+    <style>
+        /* ==========================================================================
+           1. VARIÁVEIS CSS E ESTILOS GLOBAIS (DESIGN SYSTEM)
+           ========================================================================== */
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --primary-light: #eff6ff;
+            --secondary: #64748b;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            
+            --success: #10b981;
+            --success-bg: #ecfdf5;
+            --warning: #f59e0b;
+            --warning-bg: #fffbeb;
+            --danger: #ef4444;
+            --danger-bg: #fef2f2;
+            --info: #3b82f6;
+            --info-bg: #eff6ff;
+
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius: 10px;
+            --transition: all 0.2s ease-in-out;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ==========================================================================
+           2. LAYOUT & NAVEGAÇÃO LATERAL (SIDEBAR)
+           ========================================================================== */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 24px 16px;
+            position: fixed;
+            height: 100vh;
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding: 0 8px;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .brand-text h1 {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .brand-text span {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* SELETOR DE PERFIL DE ACESSO */
+        .profile-switcher {
+            background-color: var(--bg-body);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 10px 12px;
+            margin-bottom: 20px;
+        }
+
+        .profile-switcher label {
+            display: block;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .profile-switcher select {
+            width: 100%;
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            font-weight: 600;
+            background-color: white;
+            color: var(--text-main);
+            cursor: pointer;
+            outline: none;
+        }
+
+        .nav-menu {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: var(--text-muted);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+
+        .nav-item:hover {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .nav-item.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        /* Ocultar abas restritas ao Administrador */
+        .admin-only {
+            display: none;
+        }
+
+        body.admin-mode .admin-only {
+            display: flex;
+        }
+
+        .api-status-box {
+            margin-top: auto;
+            padding: 12px;
+            background-color: #f1f5f9;
+            border-radius: var(--radius);
+            font-size: 0.8rem;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .status-online { background-color: var(--success); }
+        .status-local { background-color: var(--warning); }
+
+        /* ==========================================================================
+           3. ÁREA PRINCIPAL E HEADER
+           ========================================================================== */
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 32px;
+            max-width: calc(100vw - 260px);
+        }
+
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+
+        .page-title h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .page-title p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+            font-size: 0.9rem;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #f1f5f9;
+            color: var(--text-main);
+        }
+
+        /* ==========================================================================
+           4. SEÇÕES / ABAS
+           ========================================================================== */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==========================================================================
+           5. TELA 1: CALENDÁRIO & AGENDAMENTOS
+           ========================================================================== */
+        .calendar-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--bg-card);
+            padding: 16px 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .month-picker {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .month-picker h3 {
+            font-size: 1.2rem;
+            min-width: 180px;
+            text-align: center;
+        }
+
+        .search-box {
+            position: relative;
+            width: 300px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 9px 12px 9px 36px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            font-size: 0.88rem;
+            outline: none;
+        }
+
+        .search-box input:focus {
+            border-color: var(--primary);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
+
+        .day-label {
+            text-align: center;
+            font-weight: 700;
+            color: var(--text-muted);
+            padding: 10px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .calendar-day {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            min-height: 120px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+        }
+
+        .calendar-day:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .calendar-day.empty {
+            background-color: transparent;
+            border-color: transparent;
+        }
+
+        .calendar-day.today {
+            border: 2px solid var(--primary);
+            background-color: var(--primary-light);
+        }
+
+        .day-number {
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .event-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow-y: auto;
+            max-height: 95px;
+        }
+
+        .event-badge {
+            font-size: 0.73rem;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .badge-reserved { background-color: #dbeafe; color: #1e40af; border-left: 3px solid #2563eb; }
+        .badge-maintenance { background-color: #fee2e2; color: #991b1b; border-left: 3px solid #ef4444; }
+
+        .badge-time {
+            font-size: 0.68rem;
+            opacity: 0.85;
+            font-weight: 500;
+        }
+
+        /* ==========================================================================
+           6. TELA 2: DASHBOARD & KPIS
+           ========================================================================== */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+
+        .kpi-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .kpi-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        .kpi-icon.blue { background-color: var(--primary-light); color: var(--primary); }
+        .kpi-icon.green { background-color: var(--success-bg); color: var(--success); }
+        .kpi-icon.orange { background-color: #fff7ed; color: #ea580c; }
+        .kpi-icon.purple { background-color: #f3e8ff; color: #9333ea; }
+
+        .kpi-info h4 {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-info .kpi-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 4px;
+            color: var(--text-main);
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .chart-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .chart-card h3 {
+            font-size: 1.05rem;
+            margin-bottom: 20px;
+            color: var(--text-main);
+        }
+
+        .ranking-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .ranking-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .ranking-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 10px;
+            background-color: #f1f5f9;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: var(--primary);
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+
+        /* ==========================================================================
+           7. TELA 3: CADASTROS (TABELAS E FORMULÁRIOS)
+           ========================================================================== */
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 24px;
+        }
+
+        .form-card, .table-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .form-card h3, .table-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-main);
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--primary);
+        }
+
+        .sub-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .sub-nav-btn {
+            background: none;
+            border: none;
+            padding: 8px 16px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: var(--radius);
+        }
+
+        .sub-nav-btn.active {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        /* Tabelas Estilizadas */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.88rem;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: var(--text-muted);
+            padding: 12px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tr:hover {
+            background-color: #fafafa;
+        }
+
+        .tag {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .tag-success { background-color: var(--success-bg); color: var(--success); }
+        .tag-danger { background-color: var(--danger-bg); color: var(--danger); }
+        .tag-warning { background-color: var(--warning-bg); color: #b45309; }
+        .tag-primary { background-color: var(--primary-light); color: var(--primary); }
+
+        /* ==========================================================================
+           8. MODAL DE AGENDAMENTO
+           ========================================================================== */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            padding: 28px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: var(--shadow-lg);
+            animation: modalIn 0.25s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.4rem;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        /* Responsividade */
+        @media (max-width: 900px) {
+            .sidebar { width: 70px; padding: 16px 8px; }
+            .brand-text, .nav-item span, .api-status-box, .profile-switcher { display: none; }
+            .main-content { margin-left: 70px; max-width: calc(100vw - 70px); }
+            .charts-container, .admin-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">🚘</div>
+            <div class="brand-text">
+                <h1>FleetManager</h1>
+                <span>Gestão de Frota v4</span>
+            </div>
+        </div>
+
+        <div class="profile-switcher">
+            <label>Perfil de Acesso:</label>
+            <select id="userRoleSelect" onchange="handleRoleChange(this.value)">
+                <option value="user">👤 Usuário Comum</option>
+                <option value="admin">🔑 Administrador</option>
+            </select>
+        </div>
+
+        <ul class="nav-menu">
+            <li class="nav-item active" id="navCalendar" onclick="switchTab('tab-calendar', this)">
+                <span>📅</span> <span>Agendamentos</span>
+            </li>
+            <li class="nav-item admin-only" id="navDashboard" onclick="switchTab('tab-dashboard', this)">
+                <span>📊</span> <span>Dashboard KPIs</span>
+            </li>
+            <li class="nav-item admin-only" id="navCadastros" onclick="switchTab('tab-cadastros', this)">
+                <span>⚙️</span> <span>Cadastros</span>
+            </li>
+        </ul>
+
+        <div class="api-status-box">
+            <div>
+                <span class="status-indicator status-local" id="statusDot"></span>
+                <strong id="statusText">Modo Offline (Local)</strong>
+            </div>
+            <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;" id="statusDesc">
+                Dados armazenados no navegador.
+            </p>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        
+        <header class="top-header">
+            <div class="page-title">
+                <h2 id="currentTabTitle">Calendário de Agendamentos</h2>
+                <p id="currentTabDesc">Visualize e gerencie a alocação dos veículos em tempo real com horários de saída e retorno.</p>
+            </div>
+            <button class="btn" onclick="openBookingModal()">
+                <span>+</span> Novo Agendamento
+            </button>
+        </header>
+
+        <section id="tab-calendar" class="tab-content active">
+            <div class="calendar-controls">
+                <div class="month-picker">
+                    <button class="btn btn-secondary" onclick="changeMonth(-1)">&larr;</button>
+                    <h3 id="calendarMonthTitle">Mês Ano</h3>
+                    <button class="btn btn-secondary" onclick="changeMonth(1)">&rarr;</button>
+                </div>
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="calendarSearch" placeholder="Buscar veículo, condutor ou acompanhante..." oninput="renderCalendar()">
+                </div>
+            </div>
+
+            <div class="calendar-grid">
+                <div class="day-label">Dom</div>
+                <div class="day-label">Seg</div>
+                <div class="day-label">Ter</div>
+                <div class="day-label">Qua</div>
+                <div class="day-label">Qui</div>
+                <div class="day-label">Sex</div>
+                <div class="day-label">Sáb</div>
+            </div>
+            <div class="calendar-grid" id="calendarDaysContainer"></div>
+        </section>
+
+        <section id="tab-dashboard" class="tab-content admin-only-content">
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-icon blue">📅</div>
+                    <div class="kpi-info">
+                        <h4>Agendamentos (Mês)</h4>
+                        <div class="kpi-value" id="kpiTotalBookings">0</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon green">📈</div>
+                    <div class="kpi-info">
+                        <h4>Taxa de Ocupação</h4>
+                        <div class="kpi-value" id="kpiOccupancyRate">0%</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon orange">🚘</div>
+                    <div class="kpi-info">
+                        <h4>Veículos Ativos</h4>
+                        <div class="kpi-value" id="kpiActiveVehicles">0</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon purple">⚠️</div>
+                    <div class="kpi-info">
+                        <h4>Alertas (CNH / Manut.)</h4>
+                        <div class="kpi-value" id="kpiAlerts">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>🚘 Veículos Mais Utilizados (Mês)</h3>
+                    <div class="ranking-list" id="vehicleRankingList"></div>
+                </div>
+                <div class="chart-card">
+                    <h3>🏢 Uso por Departamento</h3>
+                    <div class="ranking-list" id="deptRankingList"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-cadastros" class="tab-content admin-only-content">
+            <div class="sub-nav">
+                <button class="sub-nav-btn active" onclick="switchCadastroSubTab('sub-veiculos', this)">Veículos</button>
+                <button class="sub-nav-btn" onclick="switchCadastroSubTab('sub-deptos', this)">Departamentos</button>
+                <button class="sub-nav-btn" onclick="switchCadastroSubTab('sub-colabs', this)">Colaboradores</button>
+            </div>
+
+            <div id="sub-veiculos" class="sub-tab-content">
+                <div class="admin-grid">
+                    <div class="form-card">
+                        <h3>Cadastrar Veículo</h3>
+                        <form onsubmit="handleSaveVeiculo(event)">
+                            <div class="form-group">
+                                <label>Modelo / Nome:</label>
+                                <input type="text" id="vModelo" required placeholder="Ex: Toyota Corolla">
+                            </div>
+                            <div class="form-group">
+                                <label>Placa:</label>
+                                <input type="text" id="vPlaca" required placeholder="Ex: ABC-1234">
+                            </div>
+                            <div class="form-group">
+                                <label>Categoria:</label>
+                                <select id="vCategoria">
+                                    <option value="Sedan">Sedan</option>
+                                    <option value="Hatch">Hatch</option>
+                                    <option value="SUV">SUV</option>
+                                    <option value="Utilitário">Utilitário</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Vincular a Departamento:</label>
+                                <select id="vDeptoSelect"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Status:</label>
+                                <select id="vStatus">
+                                    <option value="Disponível">Disponível</option>
+                                    <option value="Manutenção">Em Manutenção</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn" style="width: 100%;">Salvar Veículo</button>
+                        </form>
+                    </div>
+                    <div class="table-card">
+                        <h3>Frota Cadastrada</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Veículo</th>
+                                    <th>Placa</th>
+                                    <th>Depto.</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblVeiculosBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sub-deptos" class="sub-tab-content" style="display: none;">
+                <div class="admin-grid">
+                    <div class="form-card">
+                        <h3>Cadastrar Departamento</h3>
+                        <form onsubmit="handleSaveDepto(event)">
+                            <div class="form-group">
+                                <label>Nome do Departamento:</label>
+                                <input type="text" id="dNome" required placeholder="Ex: Tecnologia da Informação">
+                            </div>
+                            <div class="form-group">
+                                <label>Responsável:</label>
+                                <input type="text" id="dResponsavel" required placeholder="Ex: Carlos Silva">
+                            </div>
+                            <button type="submit" class="btn" style="width: 100%;">Salvar Departamento</button>
+                        </form>
+                    </div>
+                    <div class="table-card">
+                        <h3>Departamentos</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Departamento</th>
+                                    <th>Responsável</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblDeptosBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sub-colabs" class="sub-tab-content" style="display: none;">
+                <div class="admin-grid">
+                    <div class="form-card">
+                        <h3>Cadastrar Colaborador</h3>
+                        <form onsubmit="handleSaveColab(event)">
+                            <div class="form-group">
+                                <label>Nome Completo:</label>
+                                <input type="text" id="cNome" required placeholder="Ex: Ana Souza">
+                            </div>
+                            <div class="form-group">
+                                <label>Perfil / Permissão:</label>
+                                <select id="cPerfil" required>
+                                    <option value="Usuário">Usuário Comum</option>
+                                    <option value="Administrador">Administrador</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Validade da CNH:</label>
+                                <input type="date" id="cValidadeCnh" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Departamento:</label>
+                                <select id="cDeptoSelect"></select>
+                            </div>
+                            <button type="submit" class="btn" style="width: 100%;">Salvar Colaborador</button>
+                        </form>
+                    </div>
+                    <div class="table-card">
+                        <h3>Colaboradores Habilitados</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Perfil</th>
+                                    <th>Validade CNH</th>
+                                    <th>Depto.</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblColabsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <div class="modal-overlay" id="modalBooking">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Novo Agendamento</h3>
+                <button class="close-modal" onclick="closeBookingModal()">&times;</button>
+            </div>
+            <form onsubmit="handleSaveBooking(event)">
+                <div class="form-group">
+                    <label>Data do Agendamento:</label>
+                    <input type="date" id="bData" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Horário de Saída:</label>
+                        <input type="time" id="bHoraSaida" required value="08:00">
+                    </div>
+                    <div class="form-group">
+                        <label>Horário de Retorno:</label>
+                        <input type="time" id="bHoraRetorno" required value="12:00">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Selecione o Veículo:</label>
+                    <select id="bVeiculoSelect" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Selecione o Condutor (Colaborador):</label>
+                    <select id="bColabSelect" required></select>
+                </div>
+
+                <div class="form-group">
+                    <label>Haverá Acompanhantes?</label>
+                    <select id="bTemAcompanhantes" onchange="toggleAcompanhantesInput()">
+                        <option value="Não">Não</option>
+                        <option value="Sim">Sim</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="boxAcompanhantes" style="display: none;">
+                    <label>Informar Acompanhantes (Nomes / Depto):</label>
+                    <input type="text" id="bAcompanhantesDetalhes" placeholder="Ex: Roberto Alves, Mariana Costa (TI)">
+                </div>
+
+                <div class="form-group">
+                    <label>Motivo / Destino:</label>
+                    <input type="text" id="bMotivo" placeholder="Ex: Visita Técnica ao Cliente" required>
+                </div>
+                <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">Confirmar Agendamento</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const GOOGLE_SHEETS_API_URL = ""; 
+
+        let currentRole = "user"; // "user" ou "admin"
+
+        let state = {
+            veiculos: [],
+            departamentos: [],
+            colaboradores: [],
+            agendamentos: []
+        };
+
+        let currentDate = new Date();
+
+        const initialMockData = {
+            departamentos: [
+                { id: "d1", nome: "Tecnologia da Informação", responsavel: "Roberto Alves" },
+                { id: "d2", nome: "Vendas e Comercial", responsavel: "Mariana Costa" },
+                { id: "d3", nome: "Recursos Humanos", responsavel: "Patricia Lima" }
+            ],
+            veiculos: [
+                { id: "v1", modelo: "Toyota Corolla", placa: "ABC-1234", categoria: "Sedan", deptoId: "d1", status: "Disponível" },
+                { id: "v2", modelo: "Fiat Uno", placa: "XYZ-5678", categoria: "Hatch", deptoId: "d2", status: "Disponível" },
+                { id: "v3", modelo: "Jeep Compass", placa: "KJR-9988", categoria: "SUV", deptoId: "d3", status: "Manutenção" }
+            ],
+            colaboradores: [
+                { id: "c1", nome: "João Silva", perfil: "Administrador", validadeCnh: "2027-12-31", deptoId: "d1" },
+                { id: "c2", nome: "Beatriz Oliveira", perfil: "Usuário", validadeCnh: "2026-09-15", deptoId: "d2" }
+            ],
+            agendamentos: [
+                { id: "a1", data: getFormattedToday(0), horaSaida: "08:00", horaRetorno: "12:00", veiculoId: "v1", colabId: "c1", motivo: "Reunião de Diretoria", temAcompanhantes: "Sim", acompanhantesDetalhes: "Carlos (TI), Fernanda (RH)" },
+                { id: "a2", data: getFormattedToday(2), horaSaida: "13:30", horaRetorno: "17:00", veiculoId: "v2", colabId: "c2", motivo: "Visita Comercial", temAcompanhantes: "Não", acompanhantesDetalhes: "" }
+            ]
+        };
+
+        function getFormattedToday(offsetDays = 0) {
+            const d = new Date();
+            d.setDate(d.getDate() + offsetDays);
+            return d.toISOString().split('T')[0];
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadData();
+            applyRolePermissions();
+            renderAll();
+        });
+
+        function handleRoleChange(newRole) {
+            currentRole = newRole;
+            applyRolePermissions();
+        }
+
+        function applyRolePermissions() {
+            if (currentRole === 'admin') {
+                document.body.classList.add('admin-mode');
+            } else {
+                document.body.classList.remove('admin-mode');
+                const activeTab = document.querySelector('.tab-content.active');
+                if (activeTab && activeTab.classList.contains('admin-only-content')) {
+                    const navCal = document.getElementById('navCalendar');
+                    switchTab('tab-calendar', navCal);
+                }
+            }
+        }
+
+        async function loadData() {
+            if (GOOGLE_SHEETS_API_URL) {
+                try {
+                    document.getElementById('statusText').innerText = "Conectado ao Google Sheets";
+                    document.getElementById('statusDot').className = "status-indicator status-online";
+                    document.getElementById('statusDesc').innerText = "Sincronização em tempo real ativada.";
+                    const res = await fetch(GOOGLE_SHEETS_API_URL);
+                    const json = await res.json();
+                    state = json;
+                    return;
+                } catch (e) {
+                    console.warn("Falha ao carregar do Sheets API. Usando LocalStorage.", e);
+                }
+            }
+
+            const local = localStorage.getItem('fleet_manager_db_v4');
+            if (local) {
+                state = JSON.parse(local);
+            } else {
+                state = initialMockData;
+                saveDataLocally();
+            }
+        }
+
+        function saveDataLocally() {
+            localStorage.setItem('fleet_manager_db_v4', JSON.stringify(state));
+        }
+
+        async function syncData(actionType, payload) {
+            saveDataLocally();
+            renderAll();
+
+            if (GOOGLE_SHEETS_API_URL) {
+                try {
+                    await fetch(GOOGLE_SHEETS_API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: actionType, payload: payload })
+                    });
+                } catch(e) {
+                    console.error("Erro na sincronização API Sheets:", e);
+                }
+            }
+        }
+
+        function renderAll() {
+            renderCalendar();
+            renderDashboard();
+            renderTables();
+            populateSelects();
+        }
+
+        function switchTab(tabId, el) {
+            if (currentRole !== 'admin' && (tabId === 'tab-dashboard' || tabId === 'tab-cadastros')) {
+                alert('⚠️ Esta área é restrita a administradores.');
+                return;
+            }
+
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            if(el) el.classList.add('active');
+
+            const titles = {
+                'tab-calendar': ['Calendário de Agendamentos', 'Visualize e gerencie a alocação dos veículos em tempo real com horários de saída e retorno.'],
+                'tab-dashboard': ['Dashboard KPIs', 'Métricas de desempenho e uso da frota corporativa.'],
+                'tab-cadastros': ['Gestão de Cadastros', 'Gerencie veículos, departamentos e colaboradores.']
+            };
+
+            document.getElementById('currentTabTitle').innerText = titles[tabId][0];
+            document.getElementById('currentTabDesc').innerText = titles[tabId][1];
+
+            if(tabId === 'tab-dashboard') renderDashboard();
+        }
+
+        function switchCadastroSubTab(subId, btn) {
+            document.querySelectorAll('.sub-tab-content').forEach(s => s.style.display = 'none');
+            document.querySelectorAll('.sub-nav-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(subId).style.display = 'block';
+            btn.classList.add('active');
+        }
+
+        function changeMonth(direction) {
+            currentDate.setMonth(currentDate.getMonth() + direction);
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", 
+                                "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            
+            document.getElementById('calendarMonthTitle').innerText = `${monthNames[month]} ${year}`;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            const container = document.getElementById('calendarDaysContainer');
+            container.innerHTML = '';
+
+            const filterText = document.getElementById('calendarSearch').value.toLowerCase();
+
+            for (let i = 0; i < firstDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'calendar-day empty';
+                container.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                
+                const dayCell = document.createElement('div');
+                dayCell.className = `calendar-day ${dateStr === todayStr ? 'today' : ''}`;
+                
+                let html = `<div class="day-number">${day}</div><div class="event-list">`;
+
+                const dayBookings = state.agendamentos.filter(b => b.data === dateStr);
+                
+                dayBookings.forEach(b => {
+                    const veh = state.veiculos.find(v => v.id === b.veiculoId);
+                    const colab = state.colaboradores.find(c => c.id === b.colabId);
+                    const acompInfo = b.temAcompanhantes === 'Sim' ? ` | Acompanhantes: ${b.acompanhantesDetalhes}` : '';
+                    const fullSearchText = `${veh ? veh.modelo : ''} ${colab ? colab.nome : ''} ${b.motivo} ${b.acompanhantesDetalhes || ''}`.toLowerCase();
+
+                    if (!filterText || fullSearchText.includes(filterText)) {
+                        const tooltipText = `Saída: ${b.horaSaida || '--:--'} | Retorno: ${b.horaRetorno || '--:--'}\nCondutor: ${colab ? colab.nome : '-'}\nMotivo: ${b.motivo}${acompInfo}`;
+                        html += `<div class="event-badge badge-reserved" title="${tooltipText}">
+                                    <span>🚗 ${veh ? veh.modelo : 'Veículo'}</span>
+                                    <span class="badge-time">⏰ ${b.horaSaida || '08:00'} - ${b.horaRetorno || '18:00'}</span>
+                                 </div>`;
+                    }
+                });
+
+                state.veiculos.filter(v => v.status === 'Manutenção').forEach(v => {
+                    if (!filterText || v.modelo.toLowerCase().includes(filterText)) {
+                        html += `<div class="event-badge badge-maintenance">
+                                    <span>🛠️ ${v.modelo}</span>
+                                    <span class="badge-time">Em Manutenção</span>
+                                 </div>`;
+                    }
+                });
+
+                html += `</div>`;
+                dayCell.innerHTML = html;
+                container.appendChild(dayCell);
+            }
+        }
+
+        function renderDashboard() {
+            const currentMonthStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+            const monthBookings = state.agendamentos.filter(b => b.data.startsWith(currentMonthStr));
+
+            document.getElementById('kpiTotalBookings').innerText = monthBookings.length;
+
+            const activeVehicles = state.veiculos.filter(v => v.status === 'Disponível').length;
+            document.getElementById('kpiActiveVehicles').innerText = activeVehicles;
+
+            let alertCount = state.veiculos.filter(v => v.status === 'Manutenção').length;
+            const now = new Date();
+            state.colaboradores.forEach(c => {
+                const val = new Date(c.validadeCnh);
+                const diffDays = (val - now) / (1000 * 60 * 60 * 24);
+                if (diffDays <= 30) alertCount++;
+            });
+            document.getElementById('kpiAlerts').innerText = alertCount;
+
+            const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+            const totalCapacity = (state.veiculos.length || 1) * daysInMonth;
+            const rate = Math.min(100, Math.round((monthBookings.length / totalCapacity) * 100));
+            document.getElementById('kpiOccupancyRate').innerText = `${rate}%`;
+
+            const vehCounts = {};
+            monthBookings.forEach(b => { vehCounts[b.veiculoId] = (vehCounts[b.veiculoId] || 0) + 1; });
+            
+            const vehContainer = document.getElementById('vehicleRankingList');
+            vehContainer.innerHTML = '';
+            
+            Object.keys(vehCounts).sort((a,b) => vehCounts[b] - vehCounts[a]).slice(0, 5).forEach(vId => {
+                const v = state.veiculos.find(x => x.id === vId);
+                const count = vehCounts[vId];
+                const pct = Math.round((count / (monthBookings.length || 1)) * 100);
+                
+                vehContainer.innerHTML += `
+                    <div class="ranking-item">
+                        <div class="ranking-meta">
+                            <span>${v ? v.modelo : 'Veículo'} (${v ? v.placa : ''})</span>
+                            <span>${count} usos (${pct}%)</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: ${pct}%"></div>
+                        </div>
+                    </div>`;
+            });
+
+            if(!Object.keys(vehCounts).length) {
+                vehContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;">Nenhum agendamento neste mês.</p>';
+            }
+
+            const deptCounts = {};
+            monthBookings.forEach(b => {
+                const colab = state.colaboradores.find(c => c.id === b.colabId);
+                if (colab) {
+                    deptCounts[colab.deptoId] = (deptCounts[colab.deptoId] || 0) + 1;
+                }
+            });
+
+            const deptContainer = document.getElementById('deptRankingList');
+            deptContainer.innerHTML = '';
+
+            Object.keys(deptCounts).sort((a,b) => deptCounts[b] - deptCounts[a]).slice(0, 5).forEach(dId => {
+                const d = state.departamentos.find(x => x.id === dId);
+                const count = deptCounts[dId];
+                const pct = Math.round((count / (monthBookings.length || 1)) * 100);
+
+                deptContainer.innerHTML += `
+                    <div class="ranking-item">
+                        <div class="ranking-meta">
+                            <span>${d ? d.nome : 'Departamento'}</span>
+                            <span>${count} reservas (${pct}%)</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: ${pct}%; background-color: var(--success);"></div>
+                        </div>
+                    </div>`;
+            });
+
+            if(!Object.keys(deptCounts).length) {
+                deptContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;">Sem dados de departamento este mês.</p>';
+            }
+        }
+
+        function handleSaveVeiculo(e) {
+            e.preventDefault();
+            const newItem = {
+                id: 'v_' + Date.now(),
+                modelo: document.getElementById('vModelo').value,
+                placa: document.getElementById('vPlaca').value,
+                categoria: document.getElementById('vCategoria').value,
+                deptoId: document.getElementById('vDeptoSelect').value,
+                status: document.getElementById('vStatus').value
+            };
+            state.veiculos.push(newItem);
+            syncData('addVeiculo', newItem);
+            e.target.reset();
+            alert('Veículo cadastrado com sucesso!');
+        }
+
+        function handleSaveDepto(e) {
+            e.preventDefault();
+            const newItem = {
+                id: 'd_' + Date.now(),
+                nome: document.getElementById('dNome').value,
+                responsavel: document.getElementById('dResponsavel').value
+            };
+            state.departamentos.push(newItem);
+            syncData('addDepartamento', newItem);
+            e.target.reset();
+            alert('Departamento cadastrado!');
+        }
+
+        function handleSaveColab(e) {
+            e.preventDefault();
+            const newItem = {
+                id: 'c_' + Date.now(),
+                nome: document.getElementById('cNome').value,
+                perfil: document.getElementById('cPerfil').value,
+                validadeCnh: document.getElementById('cValidadeCnh').value,
+                deptoId: document.getElementById('cDeptoSelect').value
+            };
+            state.colaboradores.push(newItem);
+            syncData('addColaborador', newItem);
+            e.target.reset();
+            alert('Colaborador cadastrado com sucesso!');
+        }
+
+        function deleteItem(type, id) {
+            if(confirm('Deseja realmente remover este item?')) {
+                state[type] = state[type].filter(x => x.id !== id);
+                syncData('delete' + type, id);
+            }
+        }
+
+        function renderTables() {
+            // Veículos
+            const tblV = document.getElementById('tblVeiculosBody');
+            tblV.innerHTML = state.veiculos.map(v => {
+                const dept = state.departamentos.find(d => d.id === v.deptoId);
+                const isManut = v.status === 'Manutenção';
+                return `<tr>
+                    <td><strong>${v.modelo}</strong> <br><small>${v.categoria}</small></td>
+                    <td>${v.placa}</td>
+                    <td>${dept ? dept.nome : 'Geral'}</td>
+                    <td><span class="tag ${isManut ? 'tag-danger' : 'tag-success'}">${v.status}</span></td>
+                    <td><button class="btn btn-secondary" style="padding:4px 8px;" onclick="deleteItem('veiculos', '${v.id}')">🗑️</button></td>
+                </tr>`;
+            }).join('');
+
+            // Deptos
+            const tblD = document.getElementById('tblDeptosBody');
+            tblD.innerHTML = state.departamentos.map(d => `<tr>
+                <td><strong>${d.nome}</strong></td>
+                <td>${d.responsavel}</td>
+                <td><button class="btn btn-secondary" style="padding:4px 8px;" onclick="deleteItem('departamentos', '${d.id}')">🗑️</button></td>
+            </tr>`).join('');
+
+            // Colaboradores
+            const tblC = document.getElementById('tblColabsBody');
+            const today = new Date();
+            tblC.innerHTML = state.colaboradores.map(c => {
+                const dept = state.departamentos.find(d => d.id === c.deptoId);
+                const valDate = new Date(c.validadeCnh);
+                const isExpired = valDate < today;
+                const isAdmin = c.perfil === 'Administrador';
+                return `<tr>
+                    <td><strong>${c.nome}</strong></td>
+                    <td><span class="tag ${isAdmin ? 'tag-warning' : 'tag-primary'}">${c.perfil || 'Usuário'}</span></td>
+                    <td><span class="tag ${isExpired ? 'tag-danger' : 'tag-success'}">${c.validadeCnh} ${isExpired ? '(Vencida)' : ''}</span></td>
+                    <td>${dept ? dept.nome : '-'}</td>
+                    <td><button class="btn btn-secondary" style="padding:4px 8px;" onclick="deleteItem('colaboradores', '${c.id}')">🗑️</button></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function populateSelects() {
+            const deptoOpts = '<option value="">Livre / Todos</option>' + 
+                state.departamentos.map(d => `<option value="${d.id}">${d.nome}</option>`).join('');
+
+            document.getElementById('vDeptoSelect').innerHTML = deptoOpts;
+            document.getElementById('cDeptoSelect').innerHTML = deptoOpts;
+
+            document.getElementById('bVeiculoSelect').innerHTML = state.veiculos
+                .filter(v => v.status === 'Disponível')
+                .map(v => `<option value="${v.id}">${v.modelo} (${v.placa})</option>`).join('');
+
+            document.getElementById('bColabSelect').innerHTML = state.colaboradores
+                .map(c => `<option value="${c.id}">${c.nome} (${c.perfil || 'Usuário'})</option>`).join('');
+        }
+
+        function openBookingModal() {
+            document.getElementById('bData').value = getFormattedToday();
+            document.getElementById('bTemAcompanhantes').value = "Não";
+            toggleAcompanhantesInput();
+            populateSelects();
+            document.getElementById('modalBooking').classList.add('active');
+        }
+
+        function closeBookingModal() {
+            document.getElementById('modalBooking').classList.remove('active');
+        }
+
+        function toggleAcompanhantesInput() {
+            const val = document.getElementById('bTemAcompanhantes').value;
+            const box = document.getElementById('boxAcompanhantes');
+            if (val === 'Sim') {
+                box.style.display = 'block';
+            } else {
+                box.style.display = 'none';
+                document.getElementById('bAcompanhantesDetalhes').value = '';
+            }
+        }
+
+        function handleSaveBooking(e) {
+            e.preventDefault();
+            const dateVal = document.getElementById('bData').value;
+            const horaSaida = document.getElementById('bHoraSaida').value;
+            const horaRetorno = document.getElementById('bHoraRetorno').value;
+            const vehId = document.getElementById('bVeiculoSelect').value;
+            const colabId = document.getElementById('bColabSelect').value;
+            const temAcomp = document.getElementById('bTemAcompanhantes').value;
+            const acompDetalhes = document.getElementById('bAcompanhantesDetalhes').value;
+
+            if (horaSaida >= horaRetorno) {
+                alert('⚠️ O horário de retorno deve ser posterior ao horário de saída!');
+                return;
+            }
+
+            const timeConflict = state.agendamentos.some(a => {
+                if (a.data === dateVal && a.veiculoId === vehId) {
+                    const existingStart = a.horaSaida || "00:00";
+                    const existingEnd = a.horaRetorno || "23:59";
+                    return (horaSaida < existingEnd && horaRetorno > existingStart);
+                }
+                return false;
+            });
+
+            if (timeConflict) {
+                alert('⚠️ Este veículo já possui um agendamento conflitante neste mesmo horário/data!');
+                return;
+            }
+
+            const colab = state.colaboradores.find(c => c.id === colabId);
+            if (colab && new Date(colab.validadeCnh) < new Date(dateVal)) {
+                alert('🚫 Não é possível realizar o agendamento: A CNH deste colaborador estará vencida na data solicitada!');
+                return;
+            }
+
+            const newBooking = {
+                id: 'b_' + Date.now(),
+                data: dateVal,
+                horaSaida: horaSaida,
+                horaRetorno: horaRetorno,
+                veiculoId: vehId,
+                colabId: colabId,
+                temAcompanhantes: temAcomp,
+                acompanhantesDetalhes: acompDetalhes,
+                motivo: document.getElementById('bMotivo').value
+            };
+
+            state.agendamentos.push(newBooking);
+            syncData('addAgendamento', newBooking);
+            closeBookingModal();
+            alert('Agendamento realizado com sucesso!');
+        }
+    </script>
+</body>
+</html>
