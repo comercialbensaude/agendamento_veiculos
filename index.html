@@ -161,7 +161,7 @@
 
   <script>
     // IMPORTANTE: Cole abaixo a URL gerada pelo Google Apps Script
-    const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbwiZwDztMSo8dfgFTCIFZQ7Qf3we_ShO8QUWEXo9Zq7gKlIex7OMxgYbrzSu85lac0v0Q/exec";
+    const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbxmIoNHfCpOKoIAB0MHcGfhq9eB0pI7rcbn5IdyQB_CRZ65UoEHRWS4cLPuwv3gRHxa/exec";
 
     let dadosCache = { veiculos: [], departamentos: [], colaboradores: [], agendamentos: [] };
 
@@ -170,7 +170,7 @@
     };
 
     function carregarDados() {
-      if (!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL === "https://script.google.com/macros/s/AKfycbwiZwDztMSo8dfgFTCIFZQ7Qf3we_ShO8QUWEXo9Zq7gKlIex7OMxgYbrzSu85lac0v0Q/exec") {
+      if (!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL === "https://script.google.com/macros/s/AKfycbxmIoNHfCpOKoIAB0MHcGfhq9eB0pI7rcbn5IdyQB_CRZ65UoEHRWS4cLPuwv3gRHxa/exec") {
         alert("Atenção: Insira a URL do Apps Script na variável GOOGLE_SHEETS_API_URL no arquivo index.html.");
         return;
       }
